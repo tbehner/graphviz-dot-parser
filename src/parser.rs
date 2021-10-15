@@ -188,7 +188,6 @@ mod tests {
         assert_eq!(graph.is_strict, false);
         assert_eq!(graph.is_directed, true);
     }
-
     #[test]
     fn can_parse_empty_graph_with_id() {
         let input = "graph g {}";
@@ -196,7 +195,6 @@ mod tests {
         assert_eq!(rest, "");
         assert_eq!(graph.id, Some(String::from("g")));
     }
-
     #[test]
     fn can_parse_numeric_id() {
         let input = "graph 2.34 {}";
@@ -275,5 +273,16 @@ mod tests {
                 Stmt::Edge(String::from("1"), String::from("2"), vec![]),
             ]
         )
+    }
+
+    #[test]
+    fn can_parse_graph_with_nodes_with_attributes() {
+        let input = "digraph {
+            1 [type=ast];
+        }";
+        let expected = vec![Stmt::Node("1".into(), vec![("type".into(),"ast".into())])];
+        let (rest, graph) = parse(input);
+        assert_eq!(rest, "");
+        assert_eq!(graph.stmt, expected);
     }
 }
