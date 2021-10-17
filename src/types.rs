@@ -2,6 +2,22 @@ use petgraph::EdgeType;
 use petgraph::Graph;
 use std::collections::HashMap;
 
+#[derive(Debug)]
+pub struct DotNode {
+    pub name: String,
+    pub attributes: HashMap<String, String>,
+}
+
+impl DotNode {
+    pub fn new(name: &str, attributes: &[(String, String)]) -> DotNode {
+
+        DotNode {
+            name: name.into(),
+            attributes: attributes.iter().cloned().collect(),
+        }
+    }
+}
+
 pub struct GraphAST {
     pub is_strict: bool,
     pub is_directed: bool,
@@ -29,6 +45,34 @@ impl GraphAST {
                 }
                 _ => {}
             }
+        }
+    }
+
+    pub fn to_directed_graph_with<N, E>(
+        &self,
+        node_parser: &dyn Fn(&String, &Attributes) -> N,
+        edge_parser: &dyn Fn(&Attributes) -> E,
+    ) -> Option<Graph<N, E>> {
+        if self.is_directed { 
+            let mut g: Graph<N, E> = Graph::new();
+            self.to_graph_internal(node_parser, edge_parser, &mut g);
+            Some(g)
+        } else {
+            None
+        }
+    }
+
+    pub fn to_undirected_graph_with<N, E>(
+        &self,
+        node_parser: &dyn Fn(&String, &Attributes) -> N,
+        edge_parser: &dyn Fn(&Attributes) -> E,
+    ) -> Option<Graph<N, E, petgraph::Undirected>> {
+        if !self.is_directed { 
+            let mut g = Graph::new_undirected();
+            self.to_graph_internal(node_parser, edge_parser, &mut g);
+            Some(g)
+        } else {
+            None
         }
     }
 
@@ -95,6 +139,20 @@ mod tests {
         assert_eq!(graph.is_directed(), true);
         assert_eq!(graph.node_count(), 2);
         assert_eq!(graph.edge_count(), 1);
+    }
+
+    #[test]
+    fn test_petgraph_conversion_() {
+        let g = GraphAST {
+            is_strict: false,
+            is_directed: true,
+            id: None,
+            stmt: vec![
+                Stmt::Node(String::from("1"), vec![("type".into(), "ast".into())]),
+            ],
+        };
+        let graph = g.to_directed_graph_with(&|n, attr| DotNode::new(n, attr), &|_| ()).unwrap();
+        assert!(graph.node_indices().find(|i| graph[*i].attributes["type"] == "ast").is_some());
     }
 
     #[test]
